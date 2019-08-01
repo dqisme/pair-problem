@@ -4,19 +4,21 @@ var arrange = n => // we will find the arrangements of pair for there are `n` me
   (n === 1 ? // for the simplest case, if there is only one member
     [[0]] : // the only pair of the only arrangement is the member itself (aka. he/she should solo).
     (n % 2 ? // we will consider two cases by parity of n.
-      arrange(n-1) // for odd case, the arrangements is based on the `n-1` arrangements.
-        .map(arrangement => arrangement.concat(n-1)) // the new member should solo for every arrangement.
-        .concat(arrange(n-1).flatMap(arrangement => // for each arrangement
+      arrange(n - 1) // for odd case, the arrangements is based on the `n-1` arrangements.
+        .map(arrangement => arrangement.concat(n - 1)) // the new member should solo for every arrangement.
+        .concat(_.flatMap(arrange(n - 1), arrangement => // for each arrangement
           arrangement.map((member, index) => // every one in the arrangement should
-            [..._.take(arrangement, index), n-1, ..._.slice(arrangement, index + 1), member]))) : // pair with the new member and the previous pair would be solo.
-      arrange(n-1) // for even case, the arrangements is also based on the `n-1` arrangements.
+            [..._.take(arrangement, index), n - 1, ..._.slice(arrangement, index + 1), member]))) : // pair with the new member and the previous pair would be solo.
+      arrange(n - 1) // for even case, the arrangements is also based on the `n-1` arrangements.
         .map(arrangement => // for each arrangement
-          arrangement.concat(n-1)))); // the solo member should pair with the new member.
+          arrangement.concat(n - 1)))); // the solo member should pair with the new member.
 
 var check = arrangements => // we will check how many times does each pair appears.
   _(arrangements) // for all the arrangements
     .flatMap(arrangement => _.chunk(arrangement, 2)) // chunk all as pairs.
     .countBy() // and aggregate by amount.
+    .values() // for all the amounts
+    .thru(counts => counts.every(count => count === 1)) // they should all are to be 1.
     .value();
 
 var transform = arrangements =>
@@ -25,18 +27,79 @@ var transform = arrangements =>
     .mapValues(arrangement => _.chunk(arrangement, 2))
     .reduce((result, pairs, arrangement) =>
       _.mergeWith(result,
-        ...pairs.map(pair => ({[_.sortBy(pair)]: [arrangement]})),
+        ...pairs.map(pair => ({ [_.sortBy(pair)]: [arrangement] })),
         (transformed, transforming) =>
           _(transformed).concat(transforming).compact().sortBy().value()), {});
 
 var solve = situations =>
   _(_(situations).values().first())
-    .filter((arrangement, index, arrangements) =>
-      _(situations).values().sumBy(situationArrangements => _.includes(situationArrangements,arrangement))
-        === arrangements.length)
-    .flatMap(solved =>
-      product(solved, solve(_.omitBy(situations, arrangements => _.includes(arrangements, solved)))))
+    .filter(arrangement =>
+      _(situations).values().sumBy(situationArrangements => (_.includes(situationArrangements, arrangement) ? 1 : 0))
+      === _(arrangement).split(',').chunk(2).value().length)
+    .flatMap((solved) =>
+      _(situations)
+        .omitBy(arrangements => _.includes(arrangements, solved))
+        .thru(restSituations => _.isEmpty(restSituations) ?
+          [split(solved)] : solve(restSituations).map(solution => _.concat(split(solved), solution)))
+        .value())
     .value();
 
-var product = (value, array) =>
-  _.isEmpty(array) ? [value] : array.map(item => _.concat(value, item))
+var split = arrangement => [_(arrangement).split(',').map(_.toNumber).value()];
+
+var sort = solutions =>
+  _.map(solutions, (solution, index) =>
+    _(solution)
+      .map(arrangment =>
+        _(arrangment)
+          .chunk(2)
+          .map(_.sortBy)
+          .orderBy(['length', _.identity], ['desc'])
+          .flatten()
+          .value())
+      .sortBy()
+      .tap(() => console.log('Sorted: ', index + 1, solutions.length))
+      .value());
+
+var dedup = solutions =>
+  _(solutions)
+    .thru(sort)
+    .uniqWith(_.isEqual)
+    .value()
+
+var test_dedup = (n, completely) => {
+  console.log(`test case for ${n}`);
+  var all = solve(transform(arrange(n)));
+  console.log(all);
+  var first = _.first(all);
+  var sample = completely ? all : [first];
+  var samples = [
+    ...sample,
+    reverseSolution(first),
+    shuffleFirstArrangement(first),
+    exchangePair(first),
+  ];
+  const result = dedup(samples).length === sample.length;
+  console.log('...', result ? 'OK' : 'Failed');
+  return result;
+};
+
+var reverseSolution = _.reverse;
+
+var shuffleFirstArrangement = sample =>
+  _(_.first(sample))
+    .chunk(2)
+    .shuffle()
+    .orderBy('length', 'desc')
+    .flatten()
+    .thru(shuffled => [shuffled, ..._.tail(sample)])
+    .value()
+
+var exchangePair = sample =>
+  _(_.first(sample))
+    .chunk(2)
+    .map(_.reverse)
+    .flatten()
+    .thru(shuffled => [shuffled, ..._.tail(sample)])
+    .value() 
+
+_.range(1, 9).forEach(i => test_dedup(i, true));
