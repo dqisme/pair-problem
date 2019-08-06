@@ -1,6 +1,6 @@
-var _ = require('lodash');
+const _ = require('lodash');
 
-var arrange = n => // we will find the arrangements of pair for there are `n` members in the team.
+const arrange = n => // we will find the arrangements of pair for there are `n` members in the team.
   (n === 1 ? // for the simplest case, if there is only one member
     [[0]] : // the only pair of the only arrangement is the member itself (aka. he/she should solo).
     (n % 2 ? // we will consider two cases by parity of n.
@@ -13,7 +13,7 @@ var arrange = n => // we will find the arrangements of pair for there are `n` me
         .map(arrangement => // for each arrangement
           arrangement.concat(n - 1)))); // the solo member should pair with the new member.
 
-var check = arrangements => // we will check how many times does each pair appears.
+const check = arrangements => // we will check how many times does each pair appears.
   _(arrangements) // for all the arrangements
     .flatMap(arrangement => _.chunk(arrangement, 2)) // chunk all as pairs.
     .countBy() // and aggregate by amount.
@@ -21,7 +21,7 @@ var check = arrangements => // we will check how many times does each pair appea
     .thru(counts => counts.every(count => count === 1)) // they should all are to be 1.
     .value();
 
-var transform = arrangements =>
+const transform = arrangements =>
   _(arrangements)
     .keyBy()
     .mapValues(arrangement => _.chunk(arrangement, 2))
@@ -31,7 +31,7 @@ var transform = arrangements =>
         (transformed, transforming) =>
           _(transformed).concat(transforming).compact().sortBy().value()), {});
 
-var solve = situations =>
+const solve = situations =>
   _(_(situations).values().first())
     .filter(arrangement =>
       _(situations).values().sumBy(situationArrangements => (_.includes(situationArrangements, arrangement) ? 1 : 0))
@@ -44,9 +44,9 @@ var solve = situations =>
         .value())
     .value();
 
-var split = arrangement => [_(arrangement).split(',').map(_.toNumber).value()];
+const split = arrangement => [_(arrangement).split(',').map(_.toNumber).value()];
 
-var sort = solutions =>
+const sort = solutions =>
   _.map(solutions, (solution, index) =>
     _(solution)
       .map(arrangment =>
@@ -60,19 +60,31 @@ var sort = solutions =>
       .tap(() => console.log('Sorted: ', index + 1, solutions.length))
       .value());
 
-var dedup = solutions =>
+const dedup = solutions =>
   _(solutions)
     .thru(sort)
     .uniqWith(_.isEqual)
     .value()
 
-var test_dedup = (n, completely) => {
+const normalize = solution =>
+  _.map(solution, arrangement =>
+    _.map(arrangement, member =>
+      _.chain(solution)
+        .first()
+        .zip(_.range(_.first(solution).length))
+        .fromPairs()
+        .get(member)
+        .value()));
+
+const pair = n => dedup(solve(transform(arrange(n))).map(normalize));
+
+const test_dedup = (n, completely) => {
   console.log(`test case for ${n}`);
-  var all = solve(transform(arrange(n)));
+  const all = solve(transform(arrange(n)));
   console.log(all);
-  var first = _.first(all);
-  var sample = completely ? all : [first];
-  var samples = [
+  const first = _.first(all);
+  const sample = completely ? all : [first];
+  const samples = [
     ...sample,
     reverseSolution(first),
     shuffleFirstArrangement(first),
@@ -83,23 +95,25 @@ var test_dedup = (n, completely) => {
   return result;
 };
 
-var reverseSolution = _.reverse;
+const reverseSolution = _.reverse;
 
-var shuffleFirstArrangement = sample =>
+const shuffleFirstArrangement = sample =>
   _(_.first(sample))
     .chunk(2)
     .shuffle()
     .orderBy('length', 'desc')
     .flatten()
     .thru(shuffled => [shuffled, ..._.tail(sample)])
-    .value()
+    .value();
 
-var exchangePair = sample =>
+const exchangePair = sample =>
   _(_.first(sample))
     .chunk(2)
     .map(_.reverse)
     .flatten()
     .thru(shuffled => [shuffled, ..._.tail(sample)])
-    .value() 
+    .value();
 
-_.range(1, 9).forEach(i => test_dedup(i, true));
+module.exports = {
+  normalize,
+};
