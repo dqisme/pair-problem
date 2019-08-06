@@ -18,12 +18,9 @@ This repository want to solve the pair problem and implement a function to gener
 
 > 2. For the amount of members $n$, how many rounds does the solution has? And try to prove it.
 
-If $n$ is odd, then we can assume that there is another "transparent" member in the team, everyone who pairs with the "transparent" member will solo. So the number of rounds will as same as the next even number (i.e. $n+1$).
+If $n$ is odd, then we can assume that there is another "transparent" member in the team, everyone who pairs with the "transparent" member will solo. So the number of rounds will as same as the next even number (i.e. $n+1$). So we only consider that $n$ is even.
 
-So we only consider that $n$ is even. In total we have
+We can think the problem like every round is to meet the pairing demands. For example, suppose we have 4 members in team and in total we have 6 pairing demands: `[0,1]`, `[0,2]`, `[0,3]`, `[1,2]`, `[1,3]` and `[2,3]`.
 
-$$
-\sum_{}
-$$
-
-dfdfdfdf
+So if there are $n$ member in team and $n$ is an even number (Remember we only need consider the even case), we will have
+$\sum_{i=1}^{n-1}i = \frac{n(n-1)}{2}$ pairing demands. And each arrangement in a round will meet as much as $\frac{n}{2}$ demands. That is we can at least have $n-1$ rounds to meet all pairing demands **if and only if** each round contains no duplicated pair with any others.
